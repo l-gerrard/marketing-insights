@@ -1,0 +1,142 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Authentication</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success { color: #27ae60; }
+        .error { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <p id="status">Processing Google authentication...</p>
+    </div>
+
+    <script>
+        console.log('=== GOOGLE POPUP CALLBACK HTML HANDLER ===');
+        console.log('Current URL:', window.location.href);
+        console.log('Origin:', window.location.origin);
+        
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'error' : 'success';
+            
+            if (!isError) {
+                document.querySelector('.spinner').style.display = 'none';
+            }
+        }
+
+        try {
+            // Parse URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            const state = urlParams.get('state');
+
+            console.log('OAuth parameters:', {
+                code: code ? code.substring(0, 20) + '...' : null,
+                error,
+                errorDescription,
+                state
+            });
+
+            if (error) {
+                const errorMsg = `Google OAuth error: ${errorDescription || error}`;
+                console.error('OAuth error:', errorMsg);
+                updateStatus(errorMsg, true);
+                
+                if (window.opener) {
+                    console.log('Sending error to parent window');
+                    window.opener.postMessage({
+                        type: 'OAUTH_ERROR',
+                        error: errorMsg
+                    }, window.location.origin);
+                }
+            } else if (code) {
+                console.log('OAuth code received successfully');
+                updateStatus('Authentication successful! Closing window...');
+                
+                if (window.opener) {
+                    console.log('Sending success message to parent window');
+                    window.opener.postMessage({
+                        type: 'OAUTH_SUCCESS',
+                        code: code
+                    }, window.location.origin);
+                } else {
+                    console.warn('No opener window found');
+                    updateStatus('Authentication successful, but unable to communicate with parent window.', true);
+                }
+            } else {
+                const errorMsg = 'No authorization code or error received from Google';
+                console.error(errorMsg);
+                updateStatus(errorMsg, true);
+                
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'OAUTH_ERROR',
+                        error: errorMsg
+                    }, window.location.origin);
+                }
+            }
+
+            // Close popup after delay
+            setTimeout(() => {
+                console.log('Closing popup window');
+                try {
+                    window.close();
+                } catch (e) {
+                    console.error('Failed to close window:', e);
+                    updateStatus('Please close this window manually.', true);
+                }
+            }, 2000);
+
+        } catch (e) {
+            console.error('Error in popup handler:', e);
+            updateStatus('An error occurred while processing authentication.', true);
+            
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'OAUTH_ERROR',
+                    error: 'Popup handler error: ' + e.message
+                }, window.location.origin);
+            }
+        }
+    </script>
+</body>
+</html>

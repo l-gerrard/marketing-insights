@@ -1,0 +1,49 @@
+
+project_id = "oaeslntqvgbcxhbajmpy"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 2500
+pop3_port = 1100
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+
+[edge_runtime]
+enabled = true
+
+[functions.chat-gpt]
+verify_jwt = false
+
+[functions.fetch-trend-data]
+verify_jwt = false
+
+[functions.intelligent-insights]
+verify_jwt = false
+
+[functions.fetch-newsapi-articles]
+verify_jwt = false
+
+[functions.send-welcome-email]
+verify_jwt = false
+
+[functions.fetch-instagram-data]
+verify_jwt = false
